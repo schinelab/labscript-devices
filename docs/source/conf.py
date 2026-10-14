@@ -13,6 +13,7 @@
 import os
 from pathlib import Path
 from jinja2 import FileSystemLoader, Environment
+import importlib.metadata
 
 # -- Project information (unique to each project) -------------------------------------
 
@@ -21,7 +22,7 @@ copyright = "2020, labscript suite"
 author = "labscript suite contributors"
 
 # The full version, including alpha/beta/rc tags
-from labscript_devices import __version__ as version  # noqa: E402
+version = importlib.metadata.version('labscript-devices')
 
 release = version
 
@@ -49,7 +50,7 @@ extensions = [
 
 autodoc_typehints = 'description'
 autoclass_content = 'both'  # options: 'both', 'class', 'init'
-autodoc_mock_imports = ['PyDAQmx','labscript_utils']
+autodoc_mock_imports = ['PyDAQmx','labscript_utils.h5_lock']
 
 # Prefix each autosectionlabel with the name of the document it is in and a colon
 autosectionlabel_prefix_document = True
@@ -64,7 +65,10 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 # The suffix(es) of source filenames.
-source_suffix = ['.rst', '.md']
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # The master toctree document.
 master_doc = 'index'
@@ -85,7 +89,7 @@ intersphinx_mapping = {
     'h5py': ('https://docs.h5py.org/en/stable/', None),
     'pydaqmx': ('https://pythonhosted.org/PyDAQmx/', None),
     'qt': (
-        '',
+        'https://riverbankcomputing.com/static/Docs/PyQt5/',
         'pyqt5-modified-objects.inv',
     )  # from https://github.com/MSLNZ/msl-qt/blob/master/docs/create_pyqt_objects.py
     # under MIT License
@@ -141,20 +145,29 @@ elif labscript_suite_doc_version not in ['stable', 'latest']:
     labscript_suite_doc_version = 'latest'
 
 # add intersphinx references for each component
+labscript_intersphinx_mapping = {}
 for ls_prog in labscript_suite_programs:
-    intersphinx_mapping[ls_prog] = (
+    val = (
         'https://docs.labscriptsuite.org/projects/{}/en/{}/'.format(
             ls_prog, labscript_suite_doc_version
         ),
         None,
     )
+    labscript_intersphinx_mapping[ls_prog] = val
+    if ls_prog != project:
+        # don't add intersphinx for current project
+        # if internal links break, they can silently be filled by links to existing online docs
+        # this is confusing and difficult to detect
+        intersphinx_mapping[ls_prog] = val
 
 # add intersphinx reference for the metapackage
 if project != "the labscript suite":
-    intersphinx_mapping['labscript-suite'] = (
+    val = (
         'https://docs.labscriptsuite.org/en/{}/'.format(labscript_suite_doc_version),
         None,
     )
+    intersphinx_mapping['labscript-suite'] = val
+    labscript_intersphinx_mapping['labscript-suite'] = val
 
 # Make `some code` equivalent to :code:`some code`
 default_role = 'code'
@@ -213,7 +226,7 @@ def setup(app):
     with open(Path(__file__).resolve().parent / 'components.rst', 'w') as f:
         f.write(
             template.render(
-                intersphinx_mapping=intersphinx_mapping,
+                intersphinx_mapping=labscript_intersphinx_mapping,
                 programs=labscript_suite_programs,
                 current_project=project,
                 img_path=img_path

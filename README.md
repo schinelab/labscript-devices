@@ -4,7 +4,7 @@
 
 ### Plugin architecture for controlling experiment hardware
 
-[![Actions Status](https://github.com/labscript-suite/labscript-devices/workflows/Build%20and%20Release/badge.svg?branch=maintenance%2F3.0.x)](https://github.com/labscript-suite/labscript-devices/actions)
+[![Actions Status](https://github.com/labscript-suite/labscript-devices/workflows/Build%20and%20Release/badge.svg)](https://github.com/labscript-suite/labscript-devices/actions)
 [![License](https://img.shields.io/pypi/l/labscript-devices.svg)](https://github.com/labscript-suite/labscript-devices/raw/master/LICENSE.txt)
 [![Python Version](https://img.shields.io/pypi/pyversions/labscript-devices.svg)](https://python.org)
 [![PyPI](https://img.shields.io/pypi/v/labscript-devices.svg)](https://pypi.org/project/labscript-devices)
@@ -15,7 +15,7 @@
 
 A modular and extensible plugin architecture to control experiment hardware using the [*labscript suite*](https://github.com/labscript-suite/labscript-suite).
 
-The *labscript suite* supports a range of commercial and open-source hardware, and is modular by design. Adding support for new devices involves writing Python functions for a well-defined set of primitives to program instructions, and transition between buffered I/O and manual states. See the [documentation](http://labscriptsuite.org/documentation) for more details on adding new devices.
+The *labscript suite* supports a range of commercial and open-source hardware, and is modular by design. Adding support for new devices involves writing Python functions for a well-defined set of primitives to program instructions, and transition between buffered I/O and manual states. See the [documentation](https://docs.labscriptsuite.org/projects/labscript-devices/en/latest/user_devices/) for more details on adding new devices.
 
 
 ## Supported hardware
