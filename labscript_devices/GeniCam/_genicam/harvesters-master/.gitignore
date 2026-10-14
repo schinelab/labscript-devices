@@ -1,0 +1,11 @@
+__pycache__/
+
+.idea/
+
+build/
+dist/
+harvesters.egg-info/
+
+*.pyc
+*.log
+*.orig
