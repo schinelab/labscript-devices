@@ -1,5 +1,5 @@
 from labscript_devices.NI_DAQmx.labscript_devices import NI_PCI_6733, NI_USB_6008
-from labscript_devices.PulseBlasterUSB import PulseBlasterUSB
+from labscript_devices.PulseBlasterUSB.labscript_devices import PulseBlasterUSB
 
 from labscript import (
     ClockLine,
@@ -15,9 +15,6 @@ from labscript import (
     wait,
     add_time_marker
 )
-
-import sys
-sys.excepthook = sys.__excepthook__
 
 
 # labscript_init('test.h5', new=True, overwrite=True)

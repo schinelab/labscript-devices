@@ -16,6 +16,10 @@ import numpy as np
 
 
 class Camera(TriggerableDevice):
+    """A camera controlled by an external program, with which BLACS communicates over
+    zeromq or a plain TCP socket. For zeromq, labscript_utils.camera_server describes
+    the protocol and provides a base class for the server. The zeromq connection uses
+    the [security] settings of the labconfig."""
     description = 'Generic Camera'        
     
     # To be set as instantiation arguments:
@@ -104,7 +108,7 @@ class Camera(TriggerableDevice):
                         
     def generate_code(self, hdf5_file):
         self.do_checks()
-        table_dtypes = [('name','a256'), ('time',float), ('frametype','a256'), ('exposure_time',float)]
+        table_dtypes = [('name','S256'), ('time',float), ('frametype','S256'), ('exposure_time',float)]
         data = np.array(self.exposures,dtype=table_dtypes)
 
         group = self.init_device_group(hdf5_file)
@@ -129,6 +133,7 @@ from blacs.device_base_class import DeviceTab
 
 from qtutils import UiLoader
 import qtutils.icons
+from qtutils.icons import Icon
 
 @BLACS_tab
 class CameraTab(DeviceTab):
@@ -173,10 +178,8 @@ class CameraTab(DeviceTab):
        
     @define_state(MODE_MANUAL, queue_state_indefinitely=True, delete_stale_states=True)
     def update_settings_and_check_connectivity(self, *args):
-        icon = QIcon(':/qtutils/fugue/hourglass')
-        pixmap = icon.pixmap(QSize(16, 16))
+        self.ui.status_icon.setIcon(Icon(':/qtutils/fugue/hourglass'))
         status_text = 'Checking...'
-        self.ui.status_icon.setPixmap(pixmap)
         self.ui.server_status.setText(status_text)
         kwargs = self.get_save_data()
         responding = yield(self.queue_work(self.primary_worker, 'update_settings_and_check_connectivity', **kwargs))
@@ -184,14 +187,12 @@ class CameraTab(DeviceTab):
         
     def update_responding_indicator(self, responding):
         if responding:
-            icon = QIcon(':/qtutils/fugue/tick')
-            pixmap = icon.pixmap(QSize(16, 16))
+            icon = Icon(':/qtutils/fugue/tick')
             status_text = 'Server is responding'
         else:
-            icon = QIcon(':/qtutils/fugue/exclamation')
-            pixmap = icon.pixmap(QSize(16, 16))
+            icon = Icon(':/qtutils/fugue/exclamation')
             status_text = 'Server not responding'
-        self.ui.status_icon.setPixmap(pixmap)
+        self.ui.status_icon.setIcon(icon)
         self.ui.server_status.setText(status_text)
 
 
@@ -199,7 +200,8 @@ class CameraWorker(Worker):
     def init(self):
         global socket; import socket
         global zmq; import zmq
-        global zprocess; import zprocess
+        global ls_zprocess; import labscript_utils.ls_zprocess as ls_zprocess
+        global AuthenticationFailure; from zprocess.security import AuthenticationFailure
         global shared_drive; import labscript_utils.shared_drive as shared_drive
         
         self.host = ''
@@ -213,7 +215,17 @@ class CameraWorker(Worker):
         if not self.use_zmq:
             return self.initialise_sockets(self.host, self.port)
         else:
-            response = zprocess.zmq_get_string(self.port, self.host, data='hello')
+            try:
+                response = ls_zprocess.zmq_get_string(self.port, self.host, data='hello')
+            except AuthenticationFailure:
+                msg = (
+                    f"Failed to authenticate with the camera server at {self.host}:"
+                    + f"{self.port}. The Camera device connects using the labconfig "
+                    + "[security] settings, and the server must use the same shared secret "
+                    + "(a server that subclasses labscript_utils.camera_server.CameraServer "
+                    + "does this from labscript-utils 3.5.0)."
+                )
+                raise AuthenticationFailure(msg) from None
             if response == 'hello':
                 return True
             else:
@@ -238,10 +250,10 @@ class CameraWorker(Worker):
         h5file = shared_drive.path_to_agnostic(h5file)
         if not self.use_zmq:
             return self.transition_to_buffered_sockets(h5file,self.host, self.port)
-        response = zprocess.zmq_get_string(self.port, self.host, data=h5file)
+        response = ls_zprocess.zmq_get_string(self.port, self.host, data=h5file)
         if response != 'ok':
             raise Exception('invalid response from server: ' + str(response))
-        response = zprocess.zmq_get_string(self.port, self.host, timeout = 10)
+        response = ls_zprocess.zmq_get_string(self.port, self.host, timeout = 10)
         if response != 'done':
             raise Exception('invalid response from server: ' + str(response))
         return {} # indicates final values of buffered run, we have none
@@ -264,10 +276,10 @@ class CameraWorker(Worker):
     def transition_to_manual(self):
         if not self.use_zmq:
             return self.transition_to_manual_sockets(self.host, self.port)
-        response = zprocess.zmq_get_string(self.port, self.host, 'done')
+        response = ls_zprocess.zmq_get_string(self.port, self.host, 'done')
         if response != 'ok':
             raise Exception('invalid response from server: ' + str(response))
-        response = zprocess.zmq_get_string(self.port, self.host, timeout = 10)
+        response = ls_zprocess.zmq_get_string(self.port, self.host, timeout = 10)
         if response != 'done':
             raise Exception('invalid response from server: ' + str(response))
         return True # indicates success
@@ -296,7 +308,7 @@ class CameraWorker(Worker):
     def abort(self):
         if not self.use_zmq:
             return self.abort_sockets(self.host, self.port)
-        response = zprocess.zmq_get_string(self.port, self.host, 'abort')
+        response = ls_zprocess.zmq_get_string(self.port, self.host, 'abort')
         if response != 'done':
             raise Exception('invalid response from server: ' + str(response))
         return True # indicates success 

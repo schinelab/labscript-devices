@@ -10,7 +10,6 @@
 # file in the root of the project for the full license.             #
 #                                                                   #
 #####################################################################
-import sys
 import time
 import threading
 from PyDAQmx import *
@@ -23,7 +22,6 @@ from numpy.lib.recfunctions import structured_to_unstructured
 import labscript_utils.h5_lock
 import h5py
 from zprocess import Event
-from zprocess.utils import _reraise
 
 import labscript_utils.properties as properties
 from labscript_utils import dedent
@@ -443,16 +441,18 @@ class NI_DAQmxAcquisitionWorker(Worker):
 
     def shutdown(self):
         if self.task is not None:
-            self.stop_task()
+            self.stop_task(discard=True)
 
-    def read(self, task_handle, event_type, num_samples, callback_data=None):
-        """Called as a callback by DAQmx while task is running. Also called by us to get
-        remaining data just prior to stopping the task. Since the callback runs
-        in a separate thread, we need to serialise access to instance variables"""
+    def read(self, task, num_samples):
+        """Called from the DAQmx callback of the given task while it is running. Also
+        called by us to get remaining data just prior to stopping the task. Since the
+        callback runs in a separate thread, we need to serialise access to instance
+        variables"""
         samples_read = int32()
         with self.tasklock:
-            if self.task is None or task_handle != self.task.taskHandle.value:
-                # Task stopped already.
+            if task is not self.task:
+                # Task stopped already. DAQmx reuses task handles, so we compare the
+                # task objects rather than the handles.
                 return 0
             self.task.ReadAnalogF64(
                 num_samples,
@@ -527,8 +527,13 @@ class NI_DAQmxAcquisitionWorker(Worker):
         if self.buffered_mode:
             self.task.CfgDigEdgeStartTrig(self.clock_terminal, DAQmx_Val_Rising)
 
+        task = self.task
+
+        def callback(task_handle, event_type, num_samples, callback_data):
+            return self.read(task, num_samples)
+
         # This must not be garbage collected until the task is:
-        self.task.callback_ptr = DAQmxEveryNSamplesEventCallbackPtr(self.read)
+        self.task.callback_ptr = DAQmxEveryNSamplesEventCallbackPtr(callback)
 
         self.task.RegisterEveryNSamplesEvent(
             DAQmx_Val_Acquired_Into_Buffer, num_samples, 0, self.task.callback_ptr, 100
@@ -536,17 +541,42 @@ class NI_DAQmxAcquisitionWorker(Worker):
 
         self.task.StartTask()
 
-    def stop_task(self):
+    def stop_task(self, discard=False):
+        """Stop and clear the task. The samples of the buffered task that are available
+        when this is called are read first, and an overflow of its buffer is raised,
+        unless discard is True. The samples of the manual-mode task are discarded."""
         with self.tasklock:
             if self.task is None:
                 raise RuntimeError('Task not running')
-            # Read remaining data:
-            self.read(self.task, None, -1)
-            # Stop the task:
-            self.task.StopTask()
-            self.task.ClearTask()
-            self.task = None
-            self.read_array = None
+            try:
+                if self.buffered_mode and not discard:
+                    # Read the samples available now, at most one read_array per call.
+                    # The task continues to acquire until it is stopped, so we do not
+                    # read the samples acquired after this point:
+                    num_samples = self.read_array.shape[0]
+                    available = uInt32()
+                    self.task.GetReadAvailSampPerChan(available)
+                    remaining = available.value
+                    while remaining:
+                        n = min(num_samples, remaining)
+                        self.read(self.task, n)
+                        remaining -= n
+                    # Once the buffer has overflowed, DAQmx reports no samples
+                    # available, and a read of zero samples raises the overflow error:
+                    self.task.ReadAnalogF64(
+                        0,
+                        0,
+                        DAQmx_Val_GroupByScanNumber,
+                        self.read_array,
+                        self.read_array.size,
+                        int32(),
+                        None,
+                    )
+            finally:
+                self.task.StopTask()
+                self.task.ClearTask()
+                self.task = None
+                self.read_array = None
 
     def transition_to_buffered(self, device_name, h5file, initial_values, fresh):
         self.logger.debug('transition_to_buffered')
@@ -585,7 +615,7 @@ class NI_DAQmxAcquisitionWorker(Worker):
         if not self.buffered_mode:
             return True
         if self.buffered_chans is not None:
-            self.stop_task()
+            self.stop_task(discard=abort)
         self.buffered_mode = False
         self.logger.info('transitioning to manual mode, task stopped')
         self.start_task(self.manual_mode_chans, self.manual_mode_rate)
@@ -618,10 +648,9 @@ class NI_DAQmxAcquisitionWorker(Worker):
             self.extract_measurements(raw_data, waits_in_use)
             self.h5_file = None
             self.buffered_rate = None
-            msg = 'data written, time taken: %ss' % str(time.time() - start_time)
+            self.logger.info('data written, time taken: %ss', time.time() - start_time)
         else:
-            msg = 'No acquisitions in this shot.'
-        self.logger.info(msg)
+            self.logger.info('No acquisitions in this shot.')
 
         return True
 
@@ -698,9 +727,9 @@ class NI_DAQmxAcquisitionWorker(Worker):
 class NI_DAQmxWaitMonitorWorker(Worker):
     def init(self):
 
-        self.all_waits_finished = Event('all_waits_finished', type='post')
-        self.wait_durations_analysed = Event('wait_durations_analysed', type='post')
-        self.wait_completed = Event('wait_completed', type='post')
+        self.all_waits_finished = Event('all_waits_finished', role='post')
+        self.wait_durations_analysed = Event('wait_durations_analysed', role='post')
+        self.wait_completed = Event('wait_completed', role='post')
 
         # Set on a per-shot basis and cleared afterward:
         self.h5_file = None
@@ -776,7 +805,7 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                     semiperiods = self.read_edges(1, timeout=None)
                 else:
                     semiperiods = self.read_edges(2, timeout=None)
-                self.logger.debug('Experiment started, got edges:' + str(semiperiods))
+                self.logger.debug('Experiment started, got edges:%s', semiperiods)
                 # May have been one or two edges, depending on whether the device has
                 # incomplete sample detection. We are only interested in the second one
                 # anyway, it tells us how long the initial pulse was. Store the pulse width
@@ -798,10 +827,11 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                         # It timed out. If there is a timeout device, send a trigger to
                         # resume the clock!
                         if self.DO_task is not None:
-                            msg = """Wait timed out; retriggering clock with {:.3e} s
-                                pulse ({} edge)"""
-                            msg = msg.format(pulse_width, self.timeout_trigger_type)
-                            self.logger.debug(dedent(msg))
+                            msg = """Wait timed out; retriggering clock with %.3e s
+                                pulse (%s edge)"""
+                            self.logger.debug(
+                                dedent(msg), pulse_width, self.timeout_trigger_type
+                            )
                             self.send_resume_trigger(pulse_width)
                         else:
                             msg = """Specified wait timeout exceeded, but there is no
@@ -821,10 +851,10 @@ class NI_DAQmxWaitMonitorWorker(Worker):
                 # Inform any interested parties that waits have all finished:
                 self.logger.debug('All waits finished')
                 self.all_waits_finished.post(self.h5_file)
-        except Exception:
+        except Exception as e:
             self.logger.exception('Exception in wait monitor thread:')
             # Save the exception so it can be raised in transition_to_manual
-            self.wait_monitor_thread_exception = sys.exc_info()
+            self.wait_monitor_thread_exception = e
 
     def send_resume_trigger(self, pulse_width):
         written = int32()
@@ -851,10 +881,11 @@ class NI_DAQmxWaitMonitorWorker(Worker):
             self.wait_monitor_thread.join()
             self.wait_monitor_thread = None
             self.shutting_down = False
-            if not abort and self.wait_monitor_thread_exception is not None:
-                # Raise any unexpected errors from the wait monitor thread:
-                _reraise(*self.wait_monitor_thread_exception)
+            exception = self.wait_monitor_thread_exception
             self.wait_monitor_thread_exception = None
+            if not abort and exception is not None:
+                # Raise any unexpected errors from the wait monitor thread:
+                raise exception
             if not abort:
                 # Don't want errors about incomplete task to be raised if we are aborting:
                 self.CI_task.StopTask()
@@ -953,7 +984,7 @@ class NI_DAQmxWaitMonitorWorker(Worker):
 
             # Work out how long the waits were, save them, post an event saying so:
             dtypes = [
-                ('label', 'a256'),
+                ('label', 'S256'),
                 ('time', float),
                 ('timeout', float),
                 ('duration', float),

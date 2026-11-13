@@ -1,6 +1,7 @@
 import labscript_utils.h5_lock
 import h5py
 import numpy as np
+from labscript_devices.common.runviewer import rising_edge_times
 
 import labscript_utils.properties as properties
 from labscript_utils import dedent
@@ -42,15 +43,7 @@ class NI_DAQmxParser(object):
             static_AO = props['static_AO']
             static_DO = props['static_DO']
 
-        times, clock_value = clock[0], clock[1]
-
-        clock_indices = np.where((clock_value[1:] - clock_value[:-1]) == 1)[0] + 1
-        # If initial clock value is 1, then this counts as a rising edge (clock should
-        # be 0 before experiment) but this is not picked up by the above code. So we
-        # insert it!
-        if clock_value[0] == 1:
-            clock_indices = np.insert(clock_indices, 0, 0)
-        clock_ticks = times[clock_indices]
+        clock_ticks = rising_edge_times(clock)
 
         traces = {}
 
@@ -73,8 +66,10 @@ class NI_DAQmxParser(object):
 
         triggers = {}
         for channel_name, channel in self.device.child_list.items():
-            if channel.parent_port in traces:
-                trace = traces[channel.parent_port]
+            # A digital connection may have a PFI suffix, as in 'port0/line0 (PFI0)'
+            connection = channel.parent_port.split()[0]
+            if connection in traces:
+                trace = traces[connection]
                 if channel.device_class == 'Trigger':
                     triggers[channel_name] = trace
                 add_trace(channel_name, trace, self.name, channel.parent_port)

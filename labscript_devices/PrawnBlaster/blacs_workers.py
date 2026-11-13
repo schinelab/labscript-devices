@@ -46,11 +46,11 @@ class PrawnBlasterWorker(Worker):
         self.cached_pll_params = {}
         # fmt: on
 
-        self.all_waits_finished = zprocess.Event("all_waits_finished", type="post")
+        self.all_waits_finished = zprocess.Event("all_waits_finished", role="post")
         self.wait_durations_analysed = zprocess.Event(
-            "wait_durations_analysed", type="post"
+            "wait_durations_analysed", role="post"
         )
-        self.wait_completed = zprocess.Event("wait_completed", type="post")
+        self.wait_completed = zprocess.Event("wait_completed", role="post")
         self.current_wait = 0
         self.wait_table = None
         self.measured_waits = None
@@ -232,7 +232,10 @@ class PrawnBlasterWorker(Worker):
                     self.wait_timeout[self.current_wait] = False
 
                 self.logger.info(
-                    f"Wait {self.current_wait} finished. Length={self.measured_waits[self.current_wait]:.9f}s. Timed-out={self.wait_timeout[self.current_wait]}"
+                    "Wait %s finished. Length=%.9fs. Timed-out=%s",
+                    self.current_wait,
+                    self.measured_waits[self.current_wait],
+                    self.wait_timeout[self.current_wait],
                 )
 
                 # Inform any interested parties that a wait has completed:
@@ -494,7 +497,7 @@ class PrawnBlasterWorker(Worker):
             with h5py.File(self.h5_file, "a") as hdf5_file:
                 # Work out how long the waits were, save em, post an event saying so
                 dtypes = [
-                    ("label", "a256"),
+                    ("label", "S256"),
                     ("time", float),
                     ("timeout", float),
                     ("duration", float),
@@ -507,7 +510,7 @@ class PrawnBlasterWorker(Worker):
                 data["duration"] = self.measured_waits
                 data["timed_out"] = self.wait_timeout
 
-                self.logger.info(str(data))
+                self.logger.info('%s', data)
 
                 hdf5_file.create_dataset("/data/waits", data=data)
 

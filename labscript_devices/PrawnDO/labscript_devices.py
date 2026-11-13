@@ -121,6 +121,9 @@ class PrawnDO(PseudoclockDevice):
     
     max_frequency_map = {'pico1' : 133e6, 'pico2' : 150e6}
 
+    max_reps = 2**32 - 1
+    """Largest number of clock cycles for which one instruction holds its output.
+    The firmware stores reps as a 32-bit unsigned integer."""
 
     @set_passed_properties(
         property_names={
@@ -199,7 +202,7 @@ class PrawnDO(PseudoclockDevice):
         if self.clock_frequency != 100e6:
             # factor to scale times by
             factor = 100e6/self.clock_frequency
-            self.clock_limit *= factor
+            self.clock_limit /= factor
             self.clock_resolution *= factor
             self.minimum_duration *= factor
             self.wait_delay *= factor
@@ -209,6 +212,7 @@ class PrawnDO(PseudoclockDevice):
 
         if clock_line is not None and trigger_device is not None:
             raise LabscriptError("Provide only a trigger_device or a clock_line, not both")
+        self.__intermediate = None
         if clock_line is not None:
             # make internal Intermediate device and trigger to connect it
             self.__intermediate = _PrawnDOIntermediateDevice(f'{name:s}__intermediate',
@@ -236,12 +240,12 @@ class PrawnDO(PseudoclockDevice):
     
     @initial_trigger_time.setter
     def initial_trigger_time(self, value):
-        if value != 0 and hasattr(self, "__intermediate"):
+        if value != 0 and self.__intermediate is not None:
             raise LabscriptError("You cannot set the initial trigger time when the PrawnDO is directly triggered by a clockline")
         self._initial_trigger_time = value
 
     def set_initial_trigger_time(self, *args, **kwargs):
-        if hasattr(self, "__intermediate"):
+        if self.__intermediate is not None:
             raise LabscriptError("You cannot set the initial trigger time when the PrawnDO is directly triggered by a clockline")
         return super().set_initial_trigger_time(*args, **kwargs)
 
@@ -272,8 +276,11 @@ class PrawnDO(PseudoclockDevice):
             # no instructions, so return
             return
 
-        # get where wait instructions should be added from clock instructions
-        wait_idxs = [i for i,instr in enumerate(instructions) if instr=='WAIT']
+        # Each 'WAIT' entry in instructions precedes the instruction at which execution
+        # resumes. The index of that instruction in times is its index in instructions
+        # minus the number of earlier 'WAIT' entries.
+        wait_idxs = [i for i, instr in enumerate(instructions) if instr == 'WAIT']
+        wait_idxs = [i - n for n, i in enumerate(wait_idxs)]
 
         # Retrieving the time series of each DigitalOut to be stored
         # as the output word for the pins
@@ -285,7 +292,17 @@ class PrawnDO(PseudoclockDevice):
         bit_sets = np.array(bitfield(bits, dtype=np.uint16))
 
         # Now create the reps array (ie times between changes in number of clock cycles)
-        reps = np.rint(np.diff(times)/self.clock_resolution).astype(np.uint32)
+        reps = np.rint(np.diff(times)/self.clock_resolution)
+        if reps.size and reps.max() > self.max_reps:
+            i = int(np.argmax(reps))
+            max_interval = self.max_reps * self.clock_resolution
+            raise LabscriptError(
+                f"{self.description} {self.name} has no output changes between "
+                f"t={times[i]} s and t={times[i + 1]} s. This interval of "
+                f"{times[i + 1] - times[i]} s is longer than the maximum of "
+                f"{max_interval:.1f} s between instructions."
+            )
+        reps = reps.astype(np.uint32)
         
         # add stop command sequence
         # final output already in bit_sets
@@ -294,8 +311,8 @@ class PrawnDO(PseudoclockDevice):
         bit_sets = np.append(bit_sets, 0) # this value is ignored
         reps = np.append(reps, 0)
 
-        # Add in wait instructions to reps
-        # have output maintain previous output state during wait
+        # Add in wait instructions to reps. The output word of the instruction at
+        # which execution resumes is held during the wait.
         reps = np.insert(reps, wait_idxs, 0)
         bit_sets = np.insert(bit_sets, wait_idxs, bit_sets[wait_idxs])
 

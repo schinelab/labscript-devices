@@ -14,6 +14,7 @@
 import labscript_utils.h5_lock  # noqa: F401
 import h5py
 import numpy as np
+from labscript_devices.common.runviewer import rising_edge_times
 
 import labscript_utils.properties as properties
 
@@ -44,14 +45,7 @@ class PrawnBlasterParser(object):
         """
 
         if clock is not None:
-            times, clock_value = clock[0], clock[1]
-            clock_indices = np.where((clock_value[1:] - clock_value[:-1]) == 1)[0] + 1
-            # If initial clock value is 1, then this counts as a rising edge
-            # (clock should be 0 before experiment) but this is not picked up
-            # by the above code. So we insert it!
-            if clock_value[0] == 1:
-                clock_indices = np.insert(clock_indices, 0, 0)
-            clock_ticks = times[clock_indices]
+            clock_ticks = rising_edge_times(clock)
 
         # get the pulse program
         pulse_programs = []
@@ -94,6 +88,8 @@ class PrawnBlasterParser(object):
 
             last_instruction_was_wait = False
             for row in pulse_program:
+                if row["reps"] == 0 and row["half_period"] == 0:  # STOP
+                    break
                 if row["reps"] == 0 and not last_instruction_was_wait:  # WAIT
                     last_instruction_was_wait = True
                     if clock is not None:
@@ -101,7 +97,7 @@ class PrawnBlasterParser(object):
                         trigger_index += 1
                     else:
                         t += self.wait_delay
-                elif last_instruction_was_wait:
+                elif row["reps"] == 0 and last_instruction_was_wait:
                     # two waits in a row means an indefinite wait, so we just skip this
                     # instruction.
                     last_instruction_was_wait = False

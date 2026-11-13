@@ -17,6 +17,7 @@ Many pseudoclock devices also include other types of outputs, including digital 
    devices/pulseblaster
    devices/pulseblaster_no_dds
    devices/opalkellyXEM3001
+   devices/narwhalpulsegenerator
    devices/pineblaster
    devices/prawnblaster
    devices/prawndo
@@ -38,16 +39,21 @@ Cameras
 
 The camera devices provide interfaces for using various scientific cameras to acquire hardware-timed images during an experiment.
 They are organized by the programming API the underlies the communication to the device.
-The "master" camera class which provides the core functionality and from which the others derive is the IMAQdx class.
+Each camera device on this list is a subclass of the TriggerableCamera class, which provides the core functionality.
+The older `Camera` and `PythonCamera` devices (``labscript_devices.Camera`` and ``labscript_devices.PythonCamera``), which communicate with a separate camera server program, are not subclasses of TriggerableCamera and have no page here.
 
 .. toctree::
    :maxdepth: 2
 
+   devices/triggerablecamera
    devices/IMAQdx
    devices/pylon
    devices/flycapture2
    devices/spinnaker
    devices/andorsolis
+   devices/thorlabs_tsi
+   devices/genicam
+   devices/dummycamera
 
 
 Frequency Sources
@@ -58,8 +64,10 @@ These devices cover various frequency sources that provide either hardware-timed
 .. toctree::
    :maxdepth: 2
 
+   devices/AD9959DDSSweeper
    devices/novatechDDS9m
    devices/phasematrixquicksyn
+   devices/windfreak
 
 
 Miscellaneous
