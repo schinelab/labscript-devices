@@ -587,6 +587,7 @@ class OrcaQuestWorker(Worker):
                 self.logger.info("starting zip")
                 for image, meta, exposure in zip(self.images, self.image_metadata, self.exposures):
                     self.logger.info(f"exposure {exposure} with meta: {meta}")
+                    meta['exposure_time'] = exposure['exposure_time']
                     if exposure['name'] == b'DISCARD' and exposure['frametype'] == b'DISCARD':
                         self.logger.debug(f"Discarding Sensor-clearing image at time {exposure['t']}")
                         images.pop((b'DISCARD', b'DISCARD'))
