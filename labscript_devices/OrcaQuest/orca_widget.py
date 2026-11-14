@@ -4,8 +4,10 @@ import numpy as np
 from zprocess import RichStreamHandler
 import logging
 
-from PyQt5 import uic, QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PySide6.QtUiTools import QUiLoader
+from PySide6 import QtWidgets, QtGui
+from PySide6.QtWidgets import QSizePolicy, QLayout
+from PySide6.QtCore import QTimer, Signal
 
 import pyqtgraph as pg
 
@@ -13,32 +15,32 @@ import pyqtgraph as pg
 
 class OrcaWidget(QtWidgets.QWidget):
     # signals emitted by this widget to outside world
-    on_continuous_requested = pyqtSignal()
-    on_stop_requested = pyqtSignal()
-    on_snap_requested = pyqtSignal()
-    on_continuous_max_change_requested = pyqtSignal(float)
-    on_exposure_change_requested = pyqtSignal(bool)
+    on_continuous_requested = Signal()
+    on_stop_requested = Signal()
+    on_snap_requested = Signal()
+    on_continuous_max_change_requested = Signal(float)
+    on_exposure_change_requested = Signal(bool)
         # roi
-    on_roi_enable_requested = pyqtSignal()
-    on_roi_disable_requested = pyqtSignal()
-    on_roi_change_requested = pyqtSignal(object, object, object, object)
-    on_log_str_requested = pyqtSignal(str)
+    on_roi_enable_requested = Signal()
+    on_roi_disable_requested = Signal()
+    on_roi_change_requested = Signal(object, object, object, object)
+    on_log_str_requested = Signal(str)
     # signals this widget received
-    request_enter_continuous_mode = pyqtSignal()
-    request_exit_continuous_mode = pyqtSignal()
-    request_update_colormap = pyqtSignal(object)
-    request_update_image = pyqtSignal(object)
-    request_update_fps = pyqtSignal(float)
-    request_update_max_fps = pyqtSignal(float)
-    request_update_labels = pyqtSignal(str)
-    request_update_cur_image_roi = pyqtSignal(str)
-    request_shutdown = pyqtSignal()
-    request_update_exposure = pyqtSignal(float)
-    request_enable_roi = pyqtSignal()
-    request_disable_roi = pyqtSignal()
-    request_roi_update = pyqtSignal(object, object, object, object)
-    request_update_status = pyqtSignal(bool)
-    request_click_roiBtn = pyqtSignal()
+    request_enter_continuous_mode = Signal()
+    request_exit_continuous_mode = Signal()
+    request_update_colormap = Signal(object)
+    request_update_image = Signal(object)
+    request_update_fps = Signal(float)
+    request_update_max_fps = Signal(float)
+    request_update_labels = Signal(str)
+    request_update_cur_image_roi = Signal(str)
+    request_shutdown = Signal()
+    request_update_exposure = Signal(float)
+    request_enable_roi = Signal()
+    request_disable_roi = Signal()
+    request_roi_update = Signal(object, object, object, object)
+    request_update_status = Signal(bool)
+    request_click_roiBtn = Signal()
     
 
     def __init__(self, parent, device_name):
@@ -53,21 +55,25 @@ class OrcaWidget(QtWidgets.QWidget):
         ui_filepath = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), 'blacs_tab.ui'
         )
-        uic.loadUi(ui_filepath, self)
+        loader = QUiLoader()
+        self.ui = loader.load(ui_filepath, self)
+        main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(self.ui)
 
         # emit signals to outside world
-        self.continuousButton.clicked.connect(lambda: self.on_continuous_requested.emit())
-        self.stopButton.clicked.connect(lambda: self.on_stop_requested.emit())
-        self.snapButton.clicked.connect(lambda: self.on_snap_requested.emit())
-        self.noMaxButton.clicked.connect(self.on_reset_rate_clicked)
-        self.maxRateSpinBox.valueChanged.connect(lambda max_rate: self.on_continuous_max_change_requested.emit(max_rate))
-        self.exposureSpinBox.valueChanged.connect(lambda _,b=self.exposure_changed_programatically: self.on_exposure_change_requested.emit(b))
-        self.enableRoiButton.clicked.connect(lambda: self.on_roi_enable_requested.emit())
-        self.disableRoiButton.clicked.connect(lambda: self.on_roi_disable_requested.emit())
-        self.hposBox.valueChanged.connect(lambda  _:  self.on_roi_change_requested.emit(self.hpos, self.hsize, self.vpos, self.vsize) if not self.roi_changed_programmatically else None)
-        self.hsizeBox.valueChanged.connect(lambda _:  self.on_roi_change_requested.emit(self.hpos, self.hsize, self.vpos, self.vsize) if not self.roi_changed_programmatically else None)
-        self.vposBox.valueChanged.connect(lambda  _:  self.on_roi_change_requested.emit(self.hpos, self.hsize, self.vpos, self.vsize) if not self.roi_changed_programmatically else None)
-        self.vsizeBox.valueChanged.connect(lambda _:  self.on_roi_change_requested.emit(self.hpos, self.hsize, self.vpos, self.vsize) if not self.roi_changed_programmatically else None)
+        self.ui.continuousButton.clicked.connect(lambda: self.on_continuous_requested.emit())
+        self.ui.stopButton.clicked.connect(lambda: self.on_stop_requested.emit())
+        self.ui.snapButton.clicked.connect(lambda: self.on_snap_requested.emit())
+        self.ui.noMaxButton.clicked.connect(self.on_reset_rate_clicked)
+        self.ui.maxRateSpinBox.valueChanged.connect(lambda max_rate: self.on_continuous_max_change_requested.emit(max_rate))
+        self.ui.exposureSpinBox.valueChanged.connect(lambda _,b=self.exposure_changed_programatically: self.on_exposure_change_requested.emit(b))
+        self.ui.enableRoiButton.clicked.connect(lambda: self.on_roi_enable_requested.emit())
+        self.ui.disableRoiButton.clicked.connect(lambda: self.on_roi_disable_requested.emit())
+        self.ui.hposBox.valueChanged.connect(lambda  _:  self.on_roi_change_requested.emit(self.hpos, self.hsize, self.vpos, self.vsize) if not self.roi_changed_programmatically else None)
+        self.ui.hsizeBox.valueChanged.connect(lambda _:  self.on_roi_change_requested.emit(self.hpos, self.hsize, self.vpos, self.vsize) if not self.roi_changed_programmatically else None)
+        self.ui.vposBox.valueChanged.connect(lambda  _:  self.on_roi_change_requested.emit(self.hpos, self.hsize, self.vpos, self.vsize) if not self.roi_changed_programmatically else None)
+        self.ui.vsizeBox.valueChanged.connect(lambda _:  self.on_roi_change_requested.emit(self.hpos, self.hsize, self.vpos, self.vsize) if not self.roi_changed_programmatically else None)
 
 
         # signal outside world sends to this widget
@@ -89,28 +95,30 @@ class OrcaWidget(QtWidgets.QWidget):
 
         self.image = pg.ImageView()
         self.image.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.verticalLayout4.addWidget(self.image)
+        self.ui.verticalLayout4.addWidget(self.image)
+
+
 
         self.image.roi.sigRegionChangeFinished.connect(self.pull_from_roi)
         # self.image.ui.roiBtn.clicked.connect(self.pull_from_roi)
 
         icon_height = 16
-        self.statusGood.setPixmap(QtGui.QPixmap(':/qtutils/fugue/tick.png').scaledToHeight(icon_height))
-        self.statusBad.setPixmap(QtGui.QPixmap(':/qtutils/fugue/cross.png').scaledToHeight(icon_height))
+        self.ui.statusGood.setPixmap(QtGui.QPixmap(':/qtutils/fugue/tick.png').scaledToHeight(icon_height))
+        self.ui.statusBad.setPixmap(QtGui.QPixmap(':/qtutils/fugue/cross.png').scaledToHeight(icon_height))
 
 
-        self.stopButton.hide()
-        self.maxRateSpinBox.hide()
-        self.noMaxButton.hide()
-        self.fpsLabel.hide()
-        self.imageLabel.hide()
-        self.statusGood.hide()
-        self.hposBox.setEnabled(False)
-        self.hsizeBox.setEnabled(False)
-        self.vsizeBox.setEnabled(False)
-        self.vposBox.setEnabled(False)
+        self.ui.stopButton.hide()
+        self.ui.maxRateSpinBox.hide()
+        self.ui.noMaxButton.hide()
+        self.ui.fpsLabel.hide()
+        self.ui.imageLabel.hide()
+        self.ui.statusGood.hide()
+        self.ui.hposBox.setEnabled(False)
+        self.ui.hsizeBox.setEnabled(False)
+        self.ui.vsizeBox.setEnabled(False)
+        self.ui.vposBox.setEnabled(False)
 
         self.roi_mode = 1
         self.disable_roi()
@@ -125,9 +133,9 @@ class OrcaWidget(QtWidgets.QWidget):
         # Ensure the GUI reserves space for these widgets even if they are hidden.
         # This prevents the GUI jumping around when buttons are clicked:
         for widget in [
-            self.stopButton,
-            self.maxRateSpinBox,
-            self.noMaxButton,
+            self.ui.stopButton,
+            self.ui.maxRateSpinBox,
+            self.ui.noMaxButton,
         ]:
             size_policy = widget.sizePolicy()
             if hasattr(size_policy, 'setRetainSizeWhenHidden'): # Qt 5.2+ only
@@ -136,34 +144,34 @@ class OrcaWidget(QtWidgets.QWidget):
 
     @property
     def max_fps(self):
-        return self.maxRateSpinBox.value()
+        return self.ui.maxRateSpinBox.value()
 
     @property
     def exposure(self):
-        return self.exposureSpinBox.value()
+        return self.ui.exposureSpinBox.value()
 
     @property
     def hpos(self):
-        return self.hposBox.value()
+        return self.ui.hposBox.value()
     
     @property
     def hsize(self):
-        return self.hsizeBox.value()
+        return self.ui.hsizeBox.value()
     
     @property
     def vpos(self):
-        return self.vposBox.value()
+        return self.ui.vposBox.value()
     
     @property
     def vsize(self):
-        return self.vsizeBox.value()
+        return self.ui.vsizeBox.value()
 
     @property
     def colormap(self):
         return self.image.ui.histogram.gradient.saveState()
 
     def on_reset_rate_clicked(self):
-        self.maxRateSpinBox.setValue(400)
+        self.ui.maxRateSpinBox.setValue(400)
 
     def update_image(self, image):
         old_index = self.image.currentIndex
@@ -184,10 +192,10 @@ class OrcaWidget(QtWidgets.QWidget):
 
     def update_cur_image_label(self):
         if self.image.currentIndex < len(self.image_names):
-            self.imageLabel.show()
-            self.imageLabel.setText(f"\"{self.image_names[self.image.currentIndex]}\"")
+            self.ui.imageLabel.show()
+            self.ui.imageLabel.setText(f"\"{self.image_names[self.image.currentIndex]}\"")
         else:
-            self.imageLabel.hide()
+            self.ui.imageLabel.hide()
 
     def update_labels(self, names):
         self.image_names = names.split("#_#")
@@ -217,50 +225,50 @@ class OrcaWidget(QtWidgets.QWidget):
             self.cur_image_roi = (-1, -1, -1, -1)
 
     def update_fps(self, fps):
-        self.fpsLabel.setText(f"{fps:.01f} fps")
+        self.ui.fpsLabel.setText(f"{fps:.01f} fps")
 
     def setup_continuous_mode(self):
-        self.snapButton.setEnabled(False)
+        self.ui.snapButton.setEnabled(False)
 
-        self.continuousButton.hide()
+        self.ui.continuousButton.hide()
 
-        self.exposureSpinBox.setEnabled(False)
-        self.enableRoiButton.setEnabled(False)
-        self.disableRoiButton.setEnabled(False)
-        self.hposBox.setEnabled(False)
-        self.hsizeBox.setEnabled(False)
-        self.vposBox.setEnabled(False)
-        self.vsizeBox.setEnabled(False)
+        self.ui.exposureSpinBox.setEnabled(False)
+        self.ui.enableRoiButton.setEnabled(False)
+        self.ui.disableRoiButton.setEnabled(False)
+        self.ui.hposBox.setEnabled(False)
+        self.ui.hsizeBox.setEnabled(False)
+        self.ui.vposBox.setEnabled(False)
+        self.ui.vsizeBox.setEnabled(False)
 
-        self.stopButton.show()
-        self.maxRateSpinBox.show()
-        self.noMaxButton.show()
-        self.fpsLabel.show()
-        self.fpsLabel.setText('? fps')
+        self.ui.stopButton.show()
+        self.ui.maxRateSpinBox.show()
+        self.ui.noMaxButton.show()
+        self.ui.fpsLabel.show()
+        self.ui.fpsLabel.setText('? fps')
 
     def exit_continuous_mode(self):
-        self.snapButton.setEnabled(True)
+        self.ui.snapButton.setEnabled(True)
 
-        self.continuousButton.show()
+        self.ui.continuousButton.show()
 
-        self.exposureSpinBox.setEnabled(True)
-        self.enableRoiButton.setEnabled(True)
-        self.disableRoiButton.setEnabled(True)
+        self.ui.exposureSpinBox.setEnabled(True)
+        self.ui.enableRoiButton.setEnabled(True)
+        self.ui.disableRoiButton.setEnabled(True)
         if self.roi_mode == 2:
-            self.hposBox.setEnabled(True)
-            self.hsizeBox.setEnabled(True)
-            self.vposBox.setEnabled(True)
-            self.vsizeBox.setEnabled(True)
+            self.ui.hposBox.setEnabled(True)
+            self.ui.hsizeBox.setEnabled(True)
+            self.ui.vposBox.setEnabled(True)
+            self.ui.vsizeBox.setEnabled(True)
         else:
-            self.hposBox.setEnabled(False)
-            self.hsizeBox.setEnabled(False)
-            self.vposBox.setEnabled(False)
-            self.vsizeBox.setEnabled(False)
+            self.ui.hposBox.setEnabled(False)
+            self.ui.hsizeBox.setEnabled(False)
+            self.ui.vposBox.setEnabled(False)
+            self.ui.vsizeBox.setEnabled(False)
 
-        self.maxRateSpinBox.hide()
-        self.noMaxButton.hide()
-        self.stopButton.hide()
-        self.fpsLabel.hide()
+        self.ui.maxRateSpinBox.hide()
+        self.ui.noMaxButton.hide()
+        self.ui.stopButton.hide()
+        self.ui.fpsLabel.hide()
 
     def click_roi_button(self):
         if self.image.image is not None:
@@ -298,10 +306,10 @@ class OrcaWidget(QtWidgets.QWidget):
             hpos  = (np.clip(hpos , 0, 4096 - hsize)  // 4) * 4
             vpos  = (np.clip(vpos , 0, 2304 - vsize)  // 4) * 4
 
-            self.hsizeBox.setValue(hsize)
-            self.vsizeBox.setValue(vsize)
-            self.hposBox.setValue(hpos)
-            self.vposBox.setValue(vpos)
+            self.ui.hsizeBox.setValue(hsize)
+            self.ui.vsizeBox.setValue(vsize)
+            self.ui.hposBox.setValue(hpos)
+            self.ui.vposBox.setValue(vpos)
             
             self.on_roi_change_requested.emit(hpos, hsize, vpos, vsize)
 
@@ -310,25 +318,25 @@ class OrcaWidget(QtWidgets.QWidget):
     def enable_roi(self):
         self.on_log_str_requested.emit(f"WIDGET: enable_roi()")
         self.roi_mode = 2
-        self.enableRoiButton.hide()
+        self.ui.enableRoiButton.hide()
 
-        self.disableRoiButton.show()
-        self.hposBox.setEnabled(True)
-        self.hsizeBox.setEnabled(True)
-        self.vposBox.setEnabled(True)
-        self.vsizeBox.setEnabled(True)
+        self.ui.disableRoiButton.show()
+        self.ui.hposBox.setEnabled(True)
+        self.ui.hsizeBox.setEnabled(True)
+        self.ui.vposBox.setEnabled(True)
+        self.ui.vsizeBox.setEnabled(True)
 
 
     def disable_roi(self):
         self.on_log_str_requested.emit(f"WIDGET: disable_roi()")
         self.roi_mode = 1
-        self.enableRoiButton.show()
+        self.ui.enableRoiButton.show()
 
-        self.disableRoiButton.hide()
-        self.hposBox.setEnabled(False)
-        self.hsizeBox.setEnabled(False)
-        self.vposBox.setEnabled(False)
-        self.vsizeBox.setEnabled(False)
+        self.ui.disableRoiButton.hide()
+        self.ui.hposBox.setEnabled(False)
+        self.ui.hsizeBox.setEnabled(False)
+        self.ui.vposBox.setEnabled(False)
+        self.ui.vsizeBox.setEnabled(False)
 
     def update_roi(self, hpos, hsize, vpos, vsize):
         self.on_log_str_requested.emit(f"WIDGET: update_roi({hpos},{hsize},{vpos},{vsize})")
@@ -337,10 +345,10 @@ class OrcaWidget(QtWidgets.QWidget):
 
         self.roi_changed_programmatically = True
 
-        self.hsizeBox.setValue(round(hsize))
-        self.vsizeBox.setValue(round(vsize))
-        self.hposBox.setValue(round(hpos))
-        self.vposBox.setValue(round(vpos))
+        self.ui.hsizeBox.setValue(round(hsize))
+        self.ui.vsizeBox.setValue(round(vsize))
+        self.ui.hposBox.setValue(round(hpos))
+        self.ui.vposBox.setValue(round(vpos))
 
         if self.image.image is not None:
             imROI = self.image.roi
@@ -361,21 +369,21 @@ class OrcaWidget(QtWidgets.QWidget):
         self.on_log_str_requested.emit(f"WIDGET: update_status({status})")
         self.status = status
         if status:
-            self.statusGood.show()
-            self.statusBad.hide()
+            self.ui.statusGood.show()
+            self.ui.statusBad.hide()
         else:
-            self.statusGood.hide()
-            self.statusBad.show()
+            self.ui.statusGood.hide()
+            self.ui.statusBad.show()
 
     def set_colormap(self, colormap):
         self.image.ui.histogram.gradient.restoreState(colormap)
 
     def set_max_fps(self, rate):
-        self.maxRateSpinBox.setValue(rate)
+        self.ui.maxRateSpinBox.setValue(rate)
 
     def set_exposure(self, exposure):
         self.on_log_str_requested.emit(f"WIDGET: set_exposure({exposure})")
-        self.exposureSpinBox.setValue(exposure)
+        self.ui.exposureSpinBox.setValue(exposure)
 
     def start_timer(self):
         self.label_update_timer.start(20) # ms

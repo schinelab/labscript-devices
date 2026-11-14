@@ -28,6 +28,9 @@
    </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="sizeConstraint">
+        <enum>QLayout::SizeConstraint::SetNoConstraint</enum>
+      </property>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
@@ -41,6 +44,9 @@
          <property name="icon">
           <iconset>
            <normaloff>:/qtutils/fugue/control-stop.png</normaloff>:/qtutils/fugue/control-stop.png</iconset>
+         </property>
+         <property name="autoRaise" stdset="0">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -56,6 +62,9 @@
           <iconset>
            <normaloff>:/qtutils/fugue/control.png</normaloff>:/qtutils/fugue/control.png</iconset>
          </property>
+         <property name="autoRaise" stdset="0">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
@@ -69,6 +78,9 @@
          <property name="icon">
           <iconset>
            <normaloff>:/qtutils/fugue/control-stop-square.png</normaloff>:/qtutils/fugue/control-stop-square.png</iconset>
+         </property>
+         <property name="autoRaise" stdset="0">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -95,10 +107,10 @@
             <number>1</number>
            </property>
            <property name="maximum">
-            <double>999999</double>
+            <double>9999.000000000000000</double>
            </property>
            <property name="value">
-            <double>100</double>
+            <double>100.000000000000000</double>
            </property>
           </widget>
          </item>
@@ -114,6 +126,9 @@
             <iconset>
              <normaloff>:/qtutils/fugue/arrow-turn-180-left.png</normaloff>:/qtutils/fugue/arrow-turn-180-left.png</iconset>
            </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
           </widget>
          </item>
         </layout>
@@ -124,7 +139,7 @@
           <string>TextLabel</string>
          </property>
          <property name="alignment">
-          <set>Qt::AlignCenter</set>
+          <set>Qt::AlignmentFlag::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -134,36 +149,36 @@
           <string>Exposure (ms)</string>
          </property>
          <property name="alignment">
-          <set>Qt::AlignCenter</set>
+          <set>Qt::AlignmentFlag::AlignCenter</set>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QDoubleSpinBox" name="exposureSpinBox">
          <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Exposure time for each camera image.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Exposure time for each camera image.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
-          <property name="prefix">
-         <string/>
+         <property name="prefix">
+          <string/>
          </property>
          <property name="suffix">
-         <string> ms</string>
+          <string> ms</string>
          </property>
          <property name="decimals">
-         <number>4</number>
-         </property>
-         <property name="maximum">
-         <double>1800000</double>
+          <number>4</number>
          </property>
          <property name="minimum">
-         <double>0</double>
+          <double>0.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>1800000.000000000000000</double>
+         </property>
+         <property name="singleStep">
+          <double>1.000000000000000</double>
          </property>
          <property name="value">
-         <double>10</double>
+          <double>10.000000000000000</double>
          </property>
-        <property name="singleStep">
-        <double>0.05</double>
-        </property>
         </widget>
        </item>
        <item>
@@ -201,12 +216,12 @@
          </property>
          <item>
           <widget class="QLabel" name="hposLabel">
-            <property name="text">
-              <string>hpos:</string>
-            </property>
-            <property name="alignment">
-              <set>Qt::AlignLeft</set>
-            </property>
+           <property name="text">
+            <string>hpos:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading</set>
+           </property>
           </widget>
          </item>
          <item>
@@ -214,17 +229,17 @@
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Initial Horizontal Position of Acquired Image&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <property name="maximum">
-            <number>4092</number>
-           </property>
            <property name="minimum">
             <number>0</number>
            </property>
-           <property name="value">
-            <number>0</number>
+           <property name="maximum">
+            <number>4092</number>
            </property>
            <property name="singleStep">
             <number>4</number>
+           </property>
+           <property name="value">
+            <number>0</number>
            </property>
           </widget>
          </item>
@@ -237,12 +252,12 @@
          </property>
          <item>
           <widget class="QLabel" name="hsizeLabel">
-            <property name="text">
-              <string>hsize:</string>
-            </property>
-            <property name="alignment">
-              <set>Qt::AlignLeft</set>
-            </property>
+           <property name="text">
+            <string>hsize:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading</set>
+           </property>
           </widget>
          </item>
          <item>
@@ -250,17 +265,17 @@
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Horizontal Width of Acquired Image&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <property name="maximum">
-            <number>4096</number>
-           </property>
            <property name="minimum">
             <number>0</number>
            </property>
-           <property name="value">
+           <property name="maximum">
             <number>4096</number>
            </property>
            <property name="singleStep">
             <number>4</number>
+           </property>
+           <property name="value">
+            <number>4096</number>
            </property>
           </widget>
          </item>
@@ -273,12 +288,12 @@
          </property>
          <item>
           <widget class="QLabel" name="vposLabel">
-            <property name="text">
-              <string>vpos:</string>
-            </property>
-            <property name="alignment">
-              <set>Qt::AlignLeft</set>
-            </property>
+           <property name="text">
+            <string>vpos:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading</set>
+           </property>
           </widget>
          </item>
          <item>
@@ -286,17 +301,17 @@
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Initial Vertical Position of Acquired Image&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <property name="maximum">
-            <number>2300</number>
-           </property>
            <property name="minimum">
             <number>0</number>
            </property>
-           <property name="value">
-            <number>0</number>
+           <property name="maximum">
+            <number>2300</number>
            </property>
            <property name="singleStep">
             <number>4</number>
+           </property>
+           <property name="value">
+            <number>0</number>
            </property>
           </widget>
          </item>
@@ -307,14 +322,14 @@
          <property name="topMargin">
           <number>0</number>
          </property>
-          <item>
+         <item>
           <widget class="QLabel" name="hposLabel">
-            <property name="text">
-              <string>vsize:</string>
-            </property>
-            <property name="alignment">
-              <set>Qt::AlignLeft</set>
-            </property>
+           <property name="text">
+            <string>vsize:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading</set>
+           </property>
           </widget>
          </item>
          <item>
@@ -322,17 +337,17 @@
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Vertical Size of Acquired Image&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <property name="maximum">
-            <number>2304</number>
-           </property>
            <property name="minimum">
             <number>0</number>
            </property>
-           <property name="value">
+           <property name="maximum">
             <number>2304</number>
            </property>
            <property name="singleStep">
             <number>4</number>
+           </property>
+           <property name="value">
+            <number>2304</number>
            </property>
           </widget>
          </item>
@@ -343,14 +358,14 @@
          <property name="topMargin">
           <number>0</number>
          </property>
-          <item>
-           <widget class="QLabel" name="statusLabel">
-            <property name="text">
-              <string>status:</string>
-            </property>
-            <property name="alignment">
-              <set>Qt::AlignLeft</set>
-            </property>
+         <item>
+          <widget class="QLabel" name="statusLabel">
+           <property name="text">
+            <string>status:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading</set>
+           </property>
           </widget>
          </item>
          <item>
@@ -358,23 +373,13 @@
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Camera ROI and Exposure Properly Programmed&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <!-- <property name="pixmap">
-            <pixmap>
-              <string>:/qtutils/fugue/tick.png</string>
-            </pixmap>
-           </property> -->
           </widget>
          </item>
-          <item>
+         <item>
           <widget class="QLabel" name="statusBad">
            <property name="toolTip">
             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Error: Camera ROI and Exposure Not Programmed&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
-           <!-- <property name="pixmap">
-           <pixmap>
-            <string>:/qtutils/fugue/cross.png</string>
-            </pixmap>
-           </property> -->
           </widget>
          </item>
         </layout>
@@ -382,7 +387,7 @@
        <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
-          <enum>Qt::Vertical</enum>
+          <enum>Qt::Orientation::Vertical</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -396,24 +401,43 @@
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout4">
-        <item>
-          <widget class="QLabel" name="imageLabel">
-          <property name="text">
-            <string>TextLabel</string>
-          </property>
-          <property name="alignment">
-            <set>Qt::AlignCenter</set>
-          </property>
-          </widget>
-        </item>
+       <property name="sizeConstraint">
+        <enum>QLayout::SizeConstraint::SetNoConstraint</enum>
+       </property>
+       <item>
+        <widget class="QLabel" name="imageLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="contextMenuPolicy">
+          <enum>Qt::ContextMenuPolicy::DefaultContextMenu</enum>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::LayoutDirection::LeftToRight</enum>
+         </property>
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
     </layout>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../../clones/qtutils/qtutils/icons/icons.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

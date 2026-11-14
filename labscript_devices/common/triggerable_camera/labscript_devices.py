@@ -190,7 +190,7 @@ class TriggerableCamera(TriggerableDevice):
         self.serial_number = serial_number
         self.BLACS_connection = hex(self.serial_number)[2:].upper()
 
-    def expose(self, t, name, frametype='frame', trigger_duration=None):
+    def expose(self, t, name, frametype='frame', trigger_duration=None, exposure_time = None):
         """Request an exposure at the given time. A trigger will be produced by the
         parent trigger object, with duration trigger_duration, or if not specified, of
         self.trigger_duration. The frame should have a `name, and optionally a
@@ -211,6 +211,9 @@ class TriggerableCamera(TriggerableDevice):
                 advised to modify your code to the correct argument order."""
             print(dedent(msg), file=sys.stderr)
             t, name = name, t
+
+        if exposure_time is not None:
+            trigger_duration = exposure_time
         if trigger_duration is None:
             trigger_duration = self.trigger_duration
         if trigger_duration is None:
